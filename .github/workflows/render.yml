@@ -1,0 +1,50 @@
+name: Render Hindi videos
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        required: true
+      short_script:
+        required: true
+      long_script:
+        required: true
+      short_bg_url:
+        required: true
+      long_bg_url:
+        required: true
+      thumbnail_url:
+        required: true
+      thumbnail_text:
+        required: false
+        default: ''
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-core
+          pip install edge-tts
+      - name: Render
+        env:
+          SHORT_SCRIPT: ${{ inputs.short_script }}
+          LONG_SCRIPT: ${{ inputs.long_script }}
+          SHORT_BG_URL: ${{ inputs.short_bg_url }}
+          LONG_BG_URL: ${{ inputs.long_bg_url }}
+          THUMB_URL: ${{ inputs.thumbnail_url }}
+          THUMB_TEXT: ${{ inputs.thumbnail_text }}
+        run: python render.py
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          gh release create "$RUN_ID" out/short.mp4 out/long.mp4 out/thumbnail.jpg --title "$RUN_ID" --notes "Auto render"
